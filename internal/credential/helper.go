@@ -122,7 +122,8 @@ type Helper interface {
 //
 // This is useful for implementing credential helpers which only support
 // credential retrieval.
-type NullHelper struct {}
+type NullHelper struct{}
+
 var _ Helper = (*NullHelper)(nil)
 
 func (n *NullHelper) Retrieve(ctx context.Context, input HelperMessage) (HelperMessage, error) {
@@ -150,7 +151,7 @@ func RunHelper(ctx context.Context, helper Helper, command string, in io.Reader,
 	}
 
 	switch command {
-	case "retrieve":
+	case "get":
 		result, err := helper.Retrieve(ctx, msg)
 		if err != nil {
 			return err

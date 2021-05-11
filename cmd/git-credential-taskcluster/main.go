@@ -18,13 +18,11 @@ var CLI struct {
 
 	SecretName string `kong:"help='The Taskcluster secret to read credentials from',env='TASKCLUSTER_GIT_SECRET',default='shared/git'"`
 
-	Taskcluster struct {
-		ProxyURL    string `kong:"help='A URL to a Taskcluster proxy to use',env='TASKCLUSTER_PROXY_URL'"`
-		RootURL     string `kong:"help='The Taskcluster instance root URL,'env='TASKCLUSTER_ROOT_URL'"`
-		ClientID    string `kong:"help='The Taskcluster client ID',env='TASKCLUSTER_CLIENT_ID'"`
-		AccessToken string `kong:"help='The Taskcluster access token',env='TASKCLUSTER_ACCESS_TOKEN'"`
-		Certificate string `kong:"help='The Taskcluster certificate',env='TASKCLUSTER_CERTIFICATE'"`
-	}
+	TaskclusterProxyURL    string `kong:"help='A URL to a Taskcluster proxy to use',env='TASKCLUSTER_PROXY_URL'"`
+	TaskclusterRootURL     string `kong:"help='The Taskcluster instance root URL',env='TASKCLUSTER_ROOT_URL'"`
+	TaskclusterClientID    string `kong:"help='The Taskcluster client ID',env='TASKCLUSTER_CLIENT_ID'"`
+	TaskclusterAccessToken string `kong:"help='The Taskcluster access token',env='TASKCLUSTER_ACCESS_TOKEN'"`
+	TaskclusterCertificate string `kong:"help='The Taskcluster certificate',env='TASKCLUSTER_CERTIFICATE'"`
 }
 
 func main() {
@@ -39,20 +37,24 @@ func main() {
 	kong.Parse(&CLI)
 
 	helper := taskcluster.Helper{
-		RootURL:     CLI.Taskcluster.RootURL,
+		RootURL: CLI.TaskclusterRootURL,
 		Credentials: tcclient.Credentials{
-			ClientID:    CLI.Taskcluster.ClientID,
-			AccessToken: CLI.Taskcluster.AccessToken,
-			Certificate: CLI.Taskcluster.Certificate,
+			ClientID:    CLI.TaskclusterClientID,
+			AccessToken: CLI.TaskclusterAccessToken,
+			Certificate: CLI.TaskclusterCertificate,
 		},
 		SecretName: CLI.SecretName,
+		Logger:     logger,
 	}
 
-	if CLI.Taskcluster.ProxyURL != "" {
-		helper = taskcluster.Helper{
-			RootURL: CLI.Taskcluster.ProxyURL,
-			SecretName: CLI.SecretName,
-		}
+	if CLI.TaskclusterProxyURL != "" {
+		helper.RootURL = CLI.TaskclusterProxyURL
+		helper.Credentials = tcclient.Credentials{}
+	}
+
+	if helper.RootURL == "" {
+		logger.Info("Taskcluster root URL is missing")
+		os.Exit(1)
 	}
 
 	if err := credential.RunHelper(ctx, &helper, CLI.Command, os.Stdin, os.Stdout); err != nil {
